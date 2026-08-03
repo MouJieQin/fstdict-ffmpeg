@@ -21,6 +21,7 @@ cd ..
 
 # Build FFmpeg
 cd ffmpeg-src
+export PKG_CONFIG=/usr/bin/false
 NM=nm ./configure \
     --cross-prefix=x86_64-linux-musl- \
     --arch=x86_64 \

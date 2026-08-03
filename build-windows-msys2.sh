@@ -18,6 +18,7 @@ cd ..
 
 
 cd ffmpeg-src
+export PKG_CONFIG=/usr/bin/false
 ./configure \
     --disable-x86asm \
     "${FFMPEG_CONFIG_FLAGS[@]}" \
