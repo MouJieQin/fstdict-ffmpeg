@@ -1,0 +1,80 @@
+name: Build Ffmpeg Cross Platform
+on:
+    push:
+        tags:
+            - "v*"
+    workflow_dispatch:
+
+jobs:
+    build-macos:
+        runs-on: macos-14
+        steps:
+            - uses: actions/checkout@v4
+            - name: Download source archive
+              run: bash download-source.sh
+            - name: Build mac universal binary
+              run: bash build-macos.sh
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  path: dist/ffmpeg-macos-universal
+
+    build-linux:
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v4
+            - name: Install musl cross compiler
+              run: sudo apt update && sudo apt install -y musl-tools
+            - name: Download source archive
+              run: bash download-source.sh
+            - name: Build linux musl static
+              run: bash build-linux-musl.sh
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  path: dist/ffmpeg-linux-x86_64
+
+    build-windows:
+        runs-on: windows-latest
+        defaults:
+            run:
+                shell: msys2 {0}
+        steps:
+            - uses: actions/checkout@v4
+            - uses: msys2/setup-msys2@v2
+              with:
+                  msystem: MINGW64
+                  update: true
+                  install: mingw-w64-x86_64-gcc make curl
+            - name: Download source archive
+              run: bash download-source.sh
+            - name: Build windows binary
+              run: bash build-windows-msys2.sh
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                  path: dist/ffmpeg-windows-x86_64.exe
+
+    release:
+        needs: [build-macos, build-linux, build-windows]
+        runs-on: ubuntu-24.04
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+            - name: Generate SHA256 sum
+              run: |
+                  sha256sum ./ffmpeg-* > sha256sums.txt
+                  cat sha256sums.txt
+            - name: Create Release
+              uses: softprops/action-gh-release@v2
+              with:
+                  files: |
+                      ./ffmpeg-macos-universal
+                      ./ffmpeg-linux-x86_64
+                      ./ffmpeg-windows-x86_64.exe
+                      ./sha256sums.txt
+                  draft: false
+                  prerelease: false
