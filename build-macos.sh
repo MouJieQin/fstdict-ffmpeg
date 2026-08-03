@@ -31,7 +31,8 @@ build_arch() {
     ./configure \
         "${FFMPEG_CONFIG_FLAGS[@]}" \
         --extra-cflags="-I${PWD}/../build_out/macos_${ARCH}/lame/include" \
-        --extra-ldflags="-L${PWD}/../build_out/macos_${ARCH}/lame/lib"
+        --extra-ldflags="-L${PWD}/../build_out/macos_${ARCH}/lame/lib" \
+        --extra-libs="-lm"
     make -j$(sysctl -n hw.ncpu)
     cp ffmpeg "../build_out/macos_${ARCH}/ffmpeg"
     cd ..

@@ -28,7 +28,8 @@ NM=nm ./configure \
     --disable-x86asm \
     "${FFMPEG_CONFIG_FLAGS[@]}" \
     --extra-cflags="-I${LAME_PREFIX}/include" \
-    --extra-ldflags="-L${LAME_PREFIX}/lib -static"
+    --extra-ldflags="-L${LAME_PREFIX}/lib -static" \
+    --extra-libs="-lm -lpthread"
 make -j$(nproc)
 cp ffmpeg "../${DIST_ROOT}/ffmpeg-linux-x86_64"
 cd ..

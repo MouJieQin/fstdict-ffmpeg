@@ -19,6 +19,7 @@ cd ..
 
 cd ffmpeg-src
 ./configure \
+    --disable-x86asm \
     "${FFMPEG_CONFIG_FLAGS[@]}" \
     --extra-cflags="-I${PWD}/../build_out/windows_x86_64/lame/include" \
     --extra-ldflags="-L${PWD}/../build_out/windows_x86_64/lame/lib -static -static-libgcc -static-libstdc++"
