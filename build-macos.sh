@@ -16,7 +16,12 @@ build_arch() {
 
     # build lame static
     cd lame-src
-    ./configure --enable-static --disable-shared --prefix="${PWD}/../build_out/macos_${ARCH}/lame"
+    ./configure \
+        --enable-static \
+        --disable-shared \
+        --disable-frontend \
+        --disable-x86asm \
+        --prefix="${PWD}/../build_out/macos_${ARCH}/lame"
     make -j$(sysctl -n hw.ncpu)
     make install
     cd ..

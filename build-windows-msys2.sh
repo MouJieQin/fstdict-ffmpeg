@@ -6,10 +6,16 @@ rm -rf "${BUILD_ROOT}/windows_x86_64"
 mkdir -p "${BUILD_ROOT}/windows_x86_64/lame"
 
 cd lame-src
-./configure --enable-static --disable-shared --prefix="${PWD}/../build_out/windows_x86_64/lame"
+./configure \
+    --enable-static \
+    --disable-shared \
+    --disable-frontend \
+    --disable-x86asm \
+    --prefix="${PWD}/../build_out/windows_x86_64/lame"
 make -j$(nproc)
 make install
 cd ..
+
 
 cd ffmpeg-src
 ./configure \

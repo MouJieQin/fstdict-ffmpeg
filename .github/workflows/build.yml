@@ -24,7 +24,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Install musl cross compiler
-              run: sudo apt update && sudo apt install -y musl-tools
+              run: sudo apt update && sudo apt install -y musl-tools make gcc
             - name: Download source archive
               run: bash download-source.sh
             - name: Build linux musl static
