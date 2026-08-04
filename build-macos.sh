@@ -7,7 +7,6 @@ build_arch() {
     ARCH=$1
     echo "==== Build macOS ${ARCH} ===="
     
-    # 1. 锁定绝对路径，防止 cd 切换目录后相对路径失效
     ROOT_DIR="$(pwd)"
     LAME_PREFIX="${ROOT_DIR}/build_out/macos_${ARCH}/lame"
     FFMPEG_OUT="${ROOT_DIR}/build_out/macos_${ARCH}/ffmpeg"
@@ -20,8 +19,11 @@ build_arch() {
     mkdir -p "${LAME_PREFIX}"
     mkdir -p "${FFMPEG_OUT}"
     
-    # build lame static
-    cd lame-src
+    # 1. 编译 LAME (使用独立的架构目录以免交叉污染)
+    rm -rf "lame-src-${ARCH}"
+    cp -r lame-src "lame-src-${ARCH}"
+    cd "lame-src-${ARCH}"
+    
     ./configure \
     --host=$(if [ "$ARCH" = "arm64" ]; then echo "arm-apple-darwin"; else echo "x86_64-apple-darwin"; fi) \
     --enable-static \
@@ -32,10 +34,14 @@ build_arch() {
     
     make -j$(sysctl -n hw.ncpu)
     make install
-    cd "${ROOT_DIR}" # 安全返回根目录
+    cd "${ROOT_DIR}"
+    rm -rf "lame-src-${ARCH}"
     
-    # build ffmpeg
-    cd ffmpeg-src
+    # 2. 编译 FFmpeg (分离源码目录，彻底解决 cputype 冲突问题)
+    rm -rf "ffmpeg-src-${ARCH}"
+    cp -r ffmpeg-src "ffmpeg-src-${ARCH}"
+    cd "ffmpeg-src-${ARCH}"
+    
     export PKG_CONFIG=/usr/bin/false
     
     ./configure \
@@ -48,20 +54,25 @@ build_arch() {
     
     make -j$(sysctl -n hw.ncpu)
     cp ffmpeg "${FFMPEG_OUT}/"
-    cd "${ROOT_DIR}" # 安全返回根目录
+    cd "${ROOT_DIR}"
+    rm -rf "ffmpeg-src-${ARCH}"
+    
+    # 复制单架构二进制文件到 dist 目录并签名
+    mkdir -p "${DIST_ROOT}"
+    cp "${FFMPEG_OUT}/ffmpeg" "${DIST_ROOT}/ffmpeg-macos-${ARCH}"
+    codesign --force --deep --sign - "${DIST_ROOT}/ffmpeg-macos-${ARCH}"
 }
 
-
-# 分别编译双架构
+# 1. 分别清洁编译双架构
 build_arch arm64
 build_arch x86_64
 
-# lipo 合并通用二进制
-mkdir -p "${DIST_ROOT}"
+# 2. 使用 lipo 合并生成通用二进制 (Universal Binary)
+echo "==== Creating macOS Universal Binary ===="
 lipo -create \
-"${BUILD_ROOT}/macos_arm64/ffmpeg" \
-"${BUILD_ROOT}/macos_x86_64/ffmpeg" \
--output "${DIST_ROOT}/ffmpeg-macos-universal"
+    "${DIST_ROOT}/ffmpeg-macos-arm64" \
+    "${DIST_ROOT}/ffmpeg-macos-x86_64" \
+    -output "${DIST_ROOT}/ffmpeg-macos-universal"
 
-# 自签名，绕过mac隔离
+# 对通用二进制进行自签名
 codesign --force --deep --sign - "${DIST_ROOT}/ffmpeg-macos-universal"

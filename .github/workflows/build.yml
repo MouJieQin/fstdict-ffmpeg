@@ -14,13 +14,14 @@ jobs:
               run: brew install nasm
             - name: Download source archive
               run: bash download-source.sh
-            - name: Build mac universal binary
+            - name: Build mac binaries
               run: bash build-macos.sh
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
                   name: build-macos
-                  path: dist/ffmpeg-macos-universal
+                  # 匹配该目录下的所有编译产物 (arm64, x86_64, 以及 universal)
+                  path: dist/ffmpeg-macos-*
 
     build-linux:
         runs-on: ubuntu-24.04
@@ -73,12 +74,20 @@ jobs:
                   merge-multiple: true
             - name: Generate SHA256 sum
               run: |
-                  sha256sum ffmpeg-macos-universal ffmpeg-linux-x86_64 ffmpeg-windows-x86_64.exe > sha256sums.txt
+                  # 包含 3 个 macOS 文件、1 个 Linux 文件、1 个 Windows 文件
+                  sha256sum \
+                    ffmpeg-macos-arm64 \
+                    ffmpeg-macos-x86_64 \
+                    ffmpeg-macos-universal \
+                    ffmpeg-linux-x86_64 \
+                    ffmpeg-windows-x86_64.exe > sha256sums.txt
                   cat sha256sums.txt
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
                   files: |
+                      ffmpeg-macos-arm64
+                      ffmpeg-macos-x86_64
                       ffmpeg-macos-universal
                       ffmpeg-linux-x86_64
                       ffmpeg-windows-x86_64.exe
