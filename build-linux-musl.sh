@@ -45,4 +45,8 @@ export PKG_CONFIG=/usr/bin/false
 
 make -j$(nproc)
 cp ffmpeg "${DIST_DIR}/ffmpeg-linux-x86_64"
+chmod +x "${DIST_DIR}/ffmpeg-linux-x86_64"
+cd "${DIST_DIR}"
+tar -czf ffmpeg-linux-x86_64.tar.gz ffmpeg-linux-x86_64
+rm ffmpeg-linux-x86_64
 cd "${ROOT_DIR}"

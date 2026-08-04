@@ -20,7 +20,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: build-macos
-                  path: dist/ffmpeg-macos-*
+                  path: dist/ffmpeg-macos-*.tar.gz
 
     build-linux:
         runs-on: ubuntu-24.04
@@ -36,7 +36,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: build-linux
-                  path: dist/ffmpeg-linux-x86_64
+                  path: dist/ffmpeg-linux-x86_64.tar.gz
 
     build-windows:
         runs-on: windows-latest
@@ -58,10 +58,9 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                   name: build-windows
-                  path: dist/ffmpeg-windows-x86_64.exe
+                  path: dist/ffmpeg-windows-x86_64.zip
 
     release:
-        # 仅在非手动触发时运行 release 作业（即只有当有匹配 v* 的标签推送时才运行）
         if: github.event_name != 'workflow_dispatch'
         needs: [build-macos, build-linux, build-windows]
         runs-on: ubuntu-24.04
@@ -77,26 +76,29 @@ jobs:
 
             - name: Generate SHA256 sum and Release Body
               run: |
-                  # 计算哈希值并输出为标准文本格式
                   sha256sum \
-                    ffmpeg-macos-arm64 \
-                    ffmpeg-macos-x86_64 \
-                    ffmpeg-macos-universal \
-                    ffmpeg-linux-x86_64 \
-                    ffmpeg-windows-x86_64.exe > sha256sums.txt
+                    ffmpeg-macos-arm64.tar.gz \
+                    ffmpeg-macos-x86_64.tar.gz \
+                    ffmpeg-macos-universal.tar.gz \
+                    ffmpeg-linux-x86_64.tar.gz \
+                    ffmpeg-windows-x86_64.zip > sha256sums.txt
 
-                  # 动态拼接 Markdown 表格作为 Release 文本描述
                   echo "## 📦 Build Artifacts Verification" > release_notes.md
                   echo "The following table displays the files generated for this release along with their SHA256 checksums to ensure file integrity." >> release_notes.md
                   echo "" >> release_notes.md
                   echo "| File Name | SHA256 Checksum |" >> release_notes.md
                   echo "| :--- | :--- |" >> release_notes.md
 
-                  # 逐行读取哈希文本并将其格式化为 Markdown 行结构
                   while read -r hash file; do
                       echo "| \`$file\` | \`$hash\` |" >> release_notes.md
                   done < sha256sums.txt
 
+                  echo "" >> release_notes.md
+                  echo "### 🍏 macOS Usage Instructions" >> release_notes.md
+                  echo "Since these files are compiled on an automated cloud environment, macOS Gatekeeper might block them upon extraction. If the program gets blocked or terminated, run this command in your terminal to allow execution:" >> release_notes.md
+                  echo "\`\`\`bash" >> release_notes.md
+                  echo "xattr -d com.apple.quarantine ffmpeg" >> release_notes.md
+                  echo "\`\`\`" >> release_notes.md
                   echo "" >> release_notes.md
                   echo "---" >> release_notes.md
                   echo "*Automated compilation powered by GitHub Actions.*" >> release_notes.md
@@ -104,15 +106,14 @@ jobs:
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
-                  # 提取触发标签名称 (如 v1.0.0)，并重命名为带有语义前缀的可读名称
-                  name: "FFmpeg Build Release ${{ github.ref_name }}"
+                  name: "${{ github.ref_name }}"
                   body_path: release_notes.md
                   files: |
-                      ffmpeg-macos-arm64
-                      ffmpeg-macos-x86_64
-                      ffmpeg-macos-universal
-                      ffmpeg-linux-x86_64
-                      ffmpeg-windows-x86_64.exe
+                      ffmpeg-macos-arm64.tar.gz
+                      ffmpeg-macos-x86_64.tar.gz
+                      ffmpeg-macos-universal.tar.gz
+                      ffmpeg-linux-x86_64.tar.gz
+                      ffmpeg-windows-x86_64.zip
                       sha256sums.txt
                   draft: false
                   prerelease: false

@@ -36,4 +36,7 @@ make -j$(nproc)
 
 # 复制到保证存在的绝对目标文件夹
 cp ffmpeg.exe "${DIST_DIR}/ffmpeg-windows-x86_64.exe"
+cd "${DIST_DIR}"
+tar -czf ffmpeg-windows-x86_64.zip ffmpeg-windows-x86_64.exe
+rm ffmpeg-windows-x86_64.exe
 cd "${ROOT_DIR}"
