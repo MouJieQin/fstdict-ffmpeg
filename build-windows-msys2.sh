@@ -2,28 +2,38 @@
 set -euo pipefail
 source ./config.env
 
-rm -rf "${BUILD_ROOT}/windows_x86_64"
-mkdir -p "${BUILD_ROOT}/windows_x86_64/lame"
+# 1. 锁死绝对路径，避免 MSYS2 相对路径定位失效
+ROOT_DIR="$(pwd)"
+LAME_PREFIX="${ROOT_DIR}/build_out/windows_x86_64/lame"
+DIST_DIR="${ROOT_DIR}/${DIST_ROOT}"
 
+# 2. 彻底初始化清理，并确保创建输出文件夹
+rm -rf "${ROOT_DIR}/build_out/windows_x86_64"
+mkdir -p "${LAME_PREFIX}"
+mkdir -p "${DIST_DIR}"
+
+# Build LAME
 cd lame-src
 ./configure \
     --enable-static \
     --disable-shared \
     --disable-frontend \
     --disable-x86asm \
-    --prefix="${PWD}/../build_out/windows_x86_64/lame"
+    --prefix="${LAME_PREFIX}"
 make -j$(nproc)
 make install
-cd ..
+cd "${ROOT_DIR}"
 
-
+# Build FFmpeg
 cd ffmpeg-src
 export PKG_CONFIG=/usr/bin/false
 ./configure \
     --disable-x86asm \
     "${FFMPEG_CONFIG_FLAGS[@]}" \
-    --extra-cflags="-I${PWD}/../build_out/windows_x86_64/lame/include" \
-    --extra-ldflags="-L${PWD}/../build_out/windows_x86_64/lame/lib -static -static-libgcc -static-libstdc++"
+    --extra-cflags="-I${LAME_PREFIX}/include" \
+    --extra-ldflags="-L${LAME_PREFIX}/lib -static -static-libgcc -static-libstdc++"
 make -j$(nproc)
-cp ffmpeg.exe "../${DIST_ROOT}/ffmpeg-windows-x86_64.exe"
-cd ..
+
+# 复制到保证存在的绝对目标文件夹
+cp ffmpeg.exe "${DIST_DIR}/ffmpeg-windows-x86_64.exe"
+cd "${ROOT_DIR}"

@@ -3,26 +3,35 @@ set -euo pipefail
 source ./config.env
 
 TARGET_ARCH="x86_64-linux-musl"
-rm -rf "${BUILD_ROOT}/linux_${TARGET_ARCH}"
-mkdir -p "${BUILD_ROOT}/linux_${TARGET_ARCH}/lame"
-LAME_PREFIX="${PWD}/${BUILD_ROOT}/linux_${TARGET_ARCH}/lame"
+ROOT_DIR="$(pwd)"
+LAME_PREFIX="${ROOT_DIR}/${BUILD_ROOT}/linux_${TARGET_ARCH}/lame"
+DIST_DIR="${ROOT_DIR}/${DIST_ROOT}"
 
-# Build LAME
+# 创建目标目录
+mkdir -p "${LAME_PREFIX}"
+mkdir -p "${DIST_DIR}"
+
+# 1. 编译 LAME (必须指定 musl 编译器和 host 架构)
 cd lame-src
-./configure \
+CC="musl-gcc" ./configure \
+    --host=x86_64-linux-gnu \
+    --target=x86_64-linux-musl \
     --enable-static \
     --disable-shared \
     --disable-frontend \
     --disable-x86asm \
     --prefix="${LAME_PREFIX}"
+
 make -j$(nproc)
 make install
-cd ..
+cd "${ROOT_DIR}"
 
-# Build FFmpeg
+# 2. 编译 FFmpeg
 cd ffmpeg-src
 export PKG_CONFIG=/usr/bin/false
-NM=nm ./configure \
+
+./configure \
+    --cc="musl-gcc" \
     --cross-prefix=x86_64-linux-musl- \
     --arch=x86_64 \
     --target-os=linux \
@@ -31,6 +40,7 @@ NM=nm ./configure \
     --extra-cflags="-I${LAME_PREFIX}/include" \
     --extra-ldflags="-L${LAME_PREFIX}/lib -static" \
     --extra-libs="-lm -lpthread"
+
 make -j$(nproc)
-cp ffmpeg "../${DIST_ROOT}/ffmpeg-linux-x86_64"
-cd ..
+cp ffmpeg "${DIST_DIR}/ffmpeg-linux-x86_64"
+cd "${ROOT_DIR}"

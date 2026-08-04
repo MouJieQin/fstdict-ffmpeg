@@ -62,19 +62,32 @@ jobs:
             contents: write
         steps:
             - uses: actions/checkout@v4
+
             - name: Download all artifacts
               uses: actions/download-artifact@v4
+              with:
+                  # 关键参数：将所有上传的产物平铺下载到当前根目录，防止生成子文件夹
+                  merge-multiple: true
+
             - name: Generate SHA256 sum
               run: |
-                  sha256sum ./ffmpeg-* > sha256sums.txt
+                  # 打印当前目录结构，方便在 CI 日志中排查真实现象
+                  echo "=== Downloaded Files ==="
+                  ls -la
+
+                  # 计算指定二进制文件的校验和
+                  sha256sum ffmpeg-macos-universal ffmpeg-linux-x86_64 ffmpeg-windows-x86_64.exe > sha256sums.txt
+
+                  echo "=== SHA256 Sums ==="
                   cat sha256sums.txt
+
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:
                   files: |
-                      ./ffmpeg-macos-universal
-                      ./ffmpeg-linux-x86_64
-                      ./ffmpeg-windows-x86_64.exe
-                      ./sha256sums.txt
+                      ffmpeg-macos-universal
+                      ffmpeg-linux-x86_64
+                      ffmpeg-windows-x86_64.exe
+                      sha256sums.txt
                   draft: false
                   prerelease: false
