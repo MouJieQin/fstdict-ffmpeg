@@ -10,6 +10,8 @@ jobs:
         runs-on: macos-14
         steps:
             - uses: actions/checkout@v4
+            - name: Install Build Dependencies
+              run: brew install nasm
             - name: Download source archive
               run: bash download-source.sh
             - name: Build mac universal binary
@@ -17,6 +19,7 @@ jobs:
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
+                  name: build-macos
                   path: dist/ffmpeg-macos-universal
 
     build-linux:
@@ -24,7 +27,7 @@ jobs:
         steps:
             - uses: actions/checkout@v4
             - name: Install musl cross compiler
-              run: sudo apt update && sudo apt install -y musl-tools make gcc
+              run: sudo apt update && sudo apt install -y musl-tools make gcc nasm
             - name: Download source archive
               run: bash download-source.sh
             - name: Build linux musl static
@@ -32,6 +35,7 @@ jobs:
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
+                  name: build-linux
                   path: dist/ffmpeg-linux-x86_64
 
     build-windows:
@@ -53,6 +57,7 @@ jobs:
             - name: Upload artifact
               uses: actions/upload-artifact@v4
               with:
+                  name: build-windows
                   path: dist/ffmpeg-windows-x86_64.exe
 
     release:
@@ -62,25 +67,14 @@ jobs:
             contents: write
         steps:
             - uses: actions/checkout@v4
-
             - name: Download all artifacts
               uses: actions/download-artifact@v4
               with:
-                  # 关键参数：将所有上传的产物平铺下载到当前根目录，防止生成子文件夹
                   merge-multiple: true
-
             - name: Generate SHA256 sum
               run: |
-                  # 打印当前目录结构，方便在 CI 日志中排查真实现象
-                  echo "=== Downloaded Files ==="
-                  ls -la
-
-                  # 计算指定二进制文件的校验和
                   sha256sum ffmpeg-macos-universal ffmpeg-linux-x86_64 ffmpeg-windows-x86_64.exe > sha256sums.txt
-
-                  echo "=== SHA256 Sums ==="
                   cat sha256sums.txt
-
             - name: Create Release
               uses: softprops/action-gh-release@v2
               with:

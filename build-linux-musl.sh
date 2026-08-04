@@ -26,13 +26,14 @@ make -j$(nproc)
 make install
 cd "${ROOT_DIR}"
 
-# 2. 编译 FFmpeg
+# Build FFmpeg
 cd ffmpeg-src
 export PKG_CONFIG=/usr/bin/false
 
 ./configure \
     --cc="musl-gcc" \
-    --cross-prefix=x86_64-linux-musl- \
+    --ar="ar" \
+    --nm="nm" \
     --arch=x86_64 \
     --target-os=linux \
     --disable-x86asm \
@@ -40,6 +41,7 @@ export PKG_CONFIG=/usr/bin/false
     --extra-cflags="-I${LAME_PREFIX}/include" \
     --extra-ldflags="-L${LAME_PREFIX}/lib -static" \
     --extra-libs="-lm -lpthread"
+
 
 make -j$(nproc)
 cp ffmpeg "${DIST_DIR}/ffmpeg-linux-x86_64"
